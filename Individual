@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Created on Tue Jun 30 17:40:11 2020
 
@@ -13,11 +14,11 @@ from time import time
 """
 tic=time()
 
-#datos_df=pd.read_excel("Marzo_eur_usd_min.xlsx")
+datos_df=pd.read_excel("Marzo_eur_usd_min.xlsx")
 #datos_df=pd.read_excel("EURUSDminuto.xlsx")
 #datos_df=pd.read_excel("EURUSDhora.xlsx")
 #datos_df=pd.read_excel("EURUSDdia.xlsx")
-datos_df=pd.read_excel("GBPUSDminuto.xlsx")
+#datos_df=pd.read_excel("GBPUSDminuto.xlsx")
 #datos_df=pd.read_excel("USDCHFminuto.xlsx")
 
 datos=np.zeros((datos_df.shape[0],4))
@@ -30,11 +31,10 @@ tac=time()
 print("El tiempo de crear la matriz y leer los datos ha sido",tac-tic) 
         
 #sns.lineplot(data=datos_df["Open"],label="Open")
-
 """
-rolls=400
+rolls=25
 particiones=1
-rango = 2
+rango = 3
 
 salida_emergencia = 2
 
@@ -49,9 +49,11 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
     fracaso_alcista=0
     operaciones_totales=0
     equity_history=[]
-    posicion_salida=[]
-    posicion_i=[]
-    repetidos_i=[]
+
+    posicion_i=-2
+    #repetidos_i=[]
+    
+
 
       
     equity=0
@@ -70,54 +72,77 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
         minimo_final = 5
 
         
-        
+        if particiones > 1 :
     
-        media = np.zeros(particiones)
+            media = np.zeros(particiones)
+                
+            for j in range (1, particiones+1): # 1, 2, 3, 4, 5
+                
+                numeros=np.zeros(tamaño)
+                
+                numeros_contador = -1
             
-        for j in range (1, particiones+1): # 1, 2, 3, 4, 5
-            
-            numeros=np.zeros(tamaño)
-            
-            numeros_contador = -1
-        
-            for k in range (tamaño*(j-1), tamaño*j): #0-19, 20-39, 40-59, 60-79, 80-99
-                
-                
-                numeros_contador += 1
-                
-                maximo_absoluto = max (maximo_absoluto, datos [i+k, 1])
-                
-                minimo_absoluto = min (minimo_absoluto, datos [i+k, 2])
-                
-                numeros[numeros_contador]=((datos[i+k, 1] + datos[i+k, 2]) / 2) #La media entre el máximo y mínimo de cada vela
-                
-
-                
-            media[j-1] = np.mean (numeros)
+                for k in range (tamaño*(j-1), tamaño*j): #0-19, 20-39, 40-59, 60-79, 80-99
                     
-        
-        
-        media_ordenada = np.zeros (len(media))
-        media_inversa = np.zeros (len(media))
-        
-                
-        
-        for ii in range (len (media_ordenada)):
-            media_ordenada[ii] = media[ii]
+                    
+                    numeros_contador += 1
+                    
+                    maximo_absoluto = max (maximo_absoluto, datos [i+k, 1])
+                    
+                    minimo_absoluto = min (minimo_absoluto, datos [i+k, 2])
+                    
+                    numeros[numeros_contador]=((datos[i+k, 1] + datos[i+k, 2]) / 2) #La media entre el máximo y mínimo de cada vela
+                    
+    
+                    
+                media[j-1] = np.mean (numeros)
+                        
             
+            
+            media_ordenada = np.zeros (len(media))
+            media_inversa = np.zeros (len(media))
+            
+                    
+            
+            for ii in range (len (media_ordenada)):
+                media_ordenada[ii] = media[ii]
+                
+            
+            media_ordenada.sort()
+            media_inversa = media_ordenada[::-1]
+            
+            ordenado=True
+            inversa=True
+            
+            
+            for m in range (len(media)):
+                if media[m] != media_ordenada[m]:
+                    ordenado=False
+                if media[m] != media_inversa[m]:
+                    inversa=False
+                    
+        elif particiones == 1:
+            
+            ordenado = False
+            inversa = False
+            
+            for j in range (rolls):
+                
+                if datos [i+j,1] > maximo_absoluto:
+                    maximo_absoluto = datos [i+j, 1]
+                    posicion_maximo = j
+                
+                if datos [i+j,2] < minimo_absoluto:
+                    minimo_absoluto =  datos [i+j, 2] 
+                    posicion_minimo = j
+            
+            if posicion_maximo > posicion_minimo:
+                ordenado = True
         
-        media_ordenada.sort()
-        media_inversa = media_ordenada[::-1]
+            elif posicion_minimo > posicion_maximo:
+                inversa = True
         
-        ordenado=True
-        inversa=True
-        
-        
-        for m in range (len(media)):
-            if media[m] != media_ordenada[m]:
-                ordenado=False
-            if media[m] != media_inversa[m]:
-                inversa=False
+            
         
     
         #if maximo_absoluto == maximo_final and ordenado: 
@@ -140,7 +165,7 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                 maximo_total = max (maximo_total, datos[i+j , 1])
                         
 
-                if datos[i+j, 1] < minimo_absoluto and minimo_alcanzado == False:
+                if datos[i+j, 2] < minimo_absoluto and minimo_alcanzado == False:
                     minimo_alcanzado = True
                     #pos_min=j
                     
@@ -152,7 +177,7 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                     
                     sushi_bajista = True
                     
-                    ancho = rango * (maximo_total - datos [i+j+1, 0])  #Rango entre el máximo y el open del dia siguiente
+                    ancho = rango * (maximo_total - datos [i+j, 2])  #Rango entre el máximo y el open del dia siguiente
                     
                     entrada = datos[i+j+1, 0]
                     
@@ -160,8 +185,8 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                     take_profit=False
                     contador = 0
                     
-                    if (i-1) in posicion_i or (i-1) in repetidos_i:
-                        repetidos_i.append(i)
+                    if (i-1) == posicion_i:
+                        posicion_i = i
                     
                     
                     elif ancho > comision_trader:
@@ -181,8 +206,10 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                     equity += resultado_emergencia
                                     equity_history.append(equity)
                                     operaciones_totales +=1
-                                    posicion_salida.append(i+j+contador)
-                                    posicion_i.append(i)
+                           
+                                    posicion_i = i
+                                    
+
                                     
                                  
                                     
@@ -195,8 +222,9 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                     equity += resultado_emergencia
                                     operaciones_totales +=1
                                     equity_history.append(equity)
-                                    posicion_salida.append(i+j+contador)
-                                    posicion_i.append(i)
+                               
+                                    posicion_i = i
+          
                                     
                                     
     
@@ -211,8 +239,10 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                 equity -= (ancho+comision_trader)
                                 operaciones_totales +=1
                                 equity_history.append(equity)
-                                posicion_salida.append(i+j+contador)
-                                posicion_i.append(i)
+                              
+                                posicion_i = i
+                                
+                        
                                 
     
                                 
@@ -226,8 +256,10 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                 equity += (ancho-comision_trader)
                                 operaciones_totales +=1
                                 equity_history.append(equity)
-                                posicion_salida.append(i+j+contador)
-                                posicion_i.append(i)
+                              
+                                posicion_i = i
+                      
+                                
                                 
     
     
@@ -266,7 +298,7 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                 
                     sushi_alcista = True
                     
-                    ancho = rango * (datos [i+j+1, 0] - minimo_total)  #Rango entre el mínimo y el cierre donde cumple
+                    ancho = rango * (datos [i+j, 1] - minimo_total)  #Rango entre el mínimo y el cierre donde cumple
                     
                     entrada = datos[i+j+1, 0]
                     
@@ -275,8 +307,8 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                     
                     contador = 0
                     
-                    if (i-1) in posicion_i or (i-1) in repetidos_i:
-                        repetidos_i.append(i)
+                    if (i-1) == posicion_i:
+                        posicion_i = i
                     
                     elif ancho > comision_trader:
                         while stop_loss==False and take_profit==False and (i+j+contador+1) < len(datos) and contador < salida_emergencia*rolls:
@@ -295,8 +327,9 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                     equity += resultado_emergencia
                                     operaciones_totales +=1
                                     equity_history.append(equity)
-                                    posicion_salida.append(i+j+contador)
-                                    posicion_i.append(i)
+                               
+                                    posicion_i = i
+                              
                                     
                                     
                                                                       
@@ -307,8 +340,9 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                     equity += resultado_emergencia
                                     operaciones_totales +=1
                                     equity_history.append(equity)
-                                    posicion_salida.append(i+j+contador)
-                                    posicion_i.append(i)
+                                 
+                                    posicion_i = i
+                                  
                                     
     
                               
@@ -321,8 +355,11 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                 equity -= (ancho+comision_trader)
                                 operaciones_totales +=1
                                 equity_history.append(equity)
-                                posicion_salida.append(i+j+contador)
-                                posicion_i.append(i)
+                         
+                                posicion_i = i
+                    
+                                
+                                
                                 
     
                                 
@@ -335,8 +372,9 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
                                 equity += (ancho-comision_trader)
                                 operaciones_totales +=1
                                 equity_history.append(equity)
-                                posicion_salida.append(i+j+contador)
-                                posicion_i.append(i)
+                         
+                                posicion_i = i
+           
                                 
     
    
@@ -349,13 +387,14 @@ def Segundo_intento (datos, rango, salida_emergencia, comision_trader, rolls, pa
     ratio_porcentual=100*exitos_totales/operaciones_efectuadas
     equity_operaciones= 10000*equity/operaciones_totales
 
-    return (ratio_porcentual, equity, operaciones_totales, equity_history, posicion_salida, posicion_i, equity_operaciones) 
-
+    return (ratio_porcentual, equity, operaciones_totales, equity_history, equity_operaciones) 
+    
+    
 tic = time()
 
 
 
-ratio_porcentual, equity, operaciones_totales, equity_history, posicion_salida, posicion_i, equity_operaciones = Segundo_intento(datos, rango, salida_emergencia, comision_trader, rolls, particiones)
+ratio_porcentual, equity, operaciones_totales, equity_history, equity_operaciones = Segundo_intento(datos, rango, salida_emergencia, comision_trader, rolls, particiones)
                 
 
 
